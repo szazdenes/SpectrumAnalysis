@@ -46,8 +46,6 @@ void MainWindow::on_pushButton_clicked()
     }
     else
         return;
-
-    qDebug("alma");
 }
 
 void MainWindow::writeToList(QString text)
@@ -70,4 +68,48 @@ void MainWindow::on_pushButton_2_clicked()
         out << QString::number(key) + "\t" + QString::number(spectrumMap[key]) + "\n";
     outFile.close();
     writeToList(outFile.fileName() + " file written.");
+}
+
+void MainWindow::on_pushButton_3_clicked()
+{
+    QStringList fileList = QFileDialog::getOpenFileNames(this, tr("open"), "/home/denes/Documents/Labor/SpectrumAnalysis/spektrum_hordó");
+    QFile file;
+    QTextStream stream(&file);
+    double wavelength, count, num = 0;
+    spectrumMap.clear();
+
+    if(!fileList.isEmpty()){
+        foreach(QString filename, fileList){
+
+            file.setFileName(filename);
+
+            if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                qDebug("baj");
+
+            while(!stream.atEnd()){
+                QString line = stream.readLine();
+                QTextStream lineStream(&line);
+                lineStream >> wavelength >> count;
+                spectrumMap[wavelength] += count;
+            }
+
+            file.close();
+
+            num++;
+        }
+
+        foreach(double key, spectrumMap.keys())
+            spectrumMap[key] /= num;
+
+        QList<double> valueList = spectrumMap.values();
+        qSort(valueList.begin(), valueList.end());
+        double countMax = valueList.last();
+
+        foreach(double key, spectrumMap.keys())
+            spectrumMap[key] /= countMax;
+
+        writeToList("Relative averaged spectrum ready.");
+    }
+    else
+        return;
 }
