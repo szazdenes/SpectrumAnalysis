@@ -57,6 +57,19 @@ void MainWindow::writeToList(QString text)
     ui->listWidget->scrollToBottom();
 }
 
+double MainWindow::getIntegralTrapezoidApproach(QMap<double, double> &spectrum)
+{
+    QList<double> keyList = spectrum.keys();
+    qSort(keyList.begin(), keyList.end());
+
+    double result = 0;
+    for(int i = 0; i < keyList.size()-1; i++){
+        result += 0.5 * (keyList.at(i+1) - keyList.at(i)) * (spectrum[keyList.at(i+1)] + spectrum[keyList.at(i)]);
+    }
+
+    return result;
+}
+
 void MainWindow::on_pushButton_2_clicked()
 {
     QFile outFile(QFileDialog::getSaveFileName(this, tr("save"), "/home/denes/Documents/Labor/SpectrumAnalysis/spektrum_hordó"));
@@ -112,4 +125,39 @@ void MainWindow::on_pushButton_3_clicked()
     }
     else
         return;
+}
+
+void MainWindow::on_pushButton_4_clicked()
+{
+    QStringList fileList = QFileDialog::getOpenFileNames(this, tr("open"), "../spektrum", QString("*ave.csv"));
+    QFile file;
+    QFile outFile("integral.csv");
+    QTextStream stream(&file), outStream(&outFile);
+    double wavelength, count;
+    double integral;
+    spectrumMap.clear();
+
+    if(!outFile.open(QIODevice::WriteOnly | QIODevice::Text))
+        qDebug("baj");
+
+    if(!fileList.isEmpty()){
+        foreach(QString filename, fileList){
+            file.setFileName(filename);
+            if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                qDebug("baj");
+            while(!stream.atEnd()){
+                QString line = stream.readLine();
+                QTextStream lineStream(&line);
+                lineStream >> wavelength >> count;
+                spectrumMap[wavelength] = count;
+            }
+            file.close();
+
+            integral = getIntegralTrapezoidApproach(spectrumMap);
+            outStream << filename.split("/").last() + "\t" + QString::number(integral, 'f', 4) + "\n";
+            spectrumMap.clear();
+            writeToList(filename.split("/").last() + " spectrum intergation ready.");
+        }
+    }
+    outFile.close();
 }
